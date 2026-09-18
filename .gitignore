@@ -1,0 +1,32 @@
+# Ambiente virtual Python e artefatos
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# Frontend (Node e Build)
+node_modules/
+dist/
+build/
+
+# Variáveis de ambiente (NUNCA commitar!)
+.env
+.env.local
+
+# IDEs, Editores e SO
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# Supabase local
+.supabase/
