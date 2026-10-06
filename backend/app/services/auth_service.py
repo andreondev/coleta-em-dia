@@ -5,9 +5,9 @@ from app.models.auth import LoginRequest, TokenResponse
 
 def login(dados: LoginRequest) -> TokenResponse:
     resultado = (
-        supabase.table("TB_ADMIN")
-        .select("DS_LOGIN, DS_SENHA")
-        .eq("DS_LOGIN", dados.DS_LOGIN)
+        supabase.table("tb_admin")
+        .select("ds_login, ds_senha")
+        .eq("ds_login", dados.DS_LOGIN)
         .single()
         .execute()
     )
@@ -23,8 +23,8 @@ def login(dados: LoginRequest) -> TokenResponse:
     if not admin:
         raise erro_credenciais
 
-    if not verificar_senha(dados.DS_SENHA, admin["DS_SENHA"]):
+    if not verificar_senha(dados.DS_SENHA, admin["ds_senha"]):
         raise erro_credenciais
 
-    token = criar_access_token(login=admin["DS_LOGIN"])
+    token = criar_access_token(login=admin["ds_login"])
     return TokenResponse(access_token=token)

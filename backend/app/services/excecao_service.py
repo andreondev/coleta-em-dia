@@ -16,18 +16,18 @@ def _validar_tipo_excecao(tp_excecao: str, hr_novo) -> None:
 
 def listar_excecoes() -> list[Excecao]:
     resultado = (
-        supabase.table("TB_EXCECAO_COLETA")
+        supabase.table("tb_excecao_coleta")
         .select("*")
-        .order("DT_EXCECAO")
+        .order("dt_excecao")
         .execute()
     )
     return resultado.data or []
 
 def buscar_excecao(id_excecao: int) -> Excecao:
     resultado = (
-        supabase.table("TB_EXCECAO_COLETA")
+        supabase.table("tb_excecao_coleta")
         .select("*")
-        .eq("ID_EXCECAO_COLETA", id_excecao)
+        .eq("id_excecao_coleta", id_excecao)
         .single()
         .execute()
     )
@@ -46,7 +46,7 @@ def criar_excecao(dados: ExcecaoCriar) -> Excecao:
     if payload["HR_NOVO"] is not None:
         payload["HR_NOVO"] = str(payload["HR_NOVO"])
 
-    resultado = supabase.table("TB_EXCECAO_COLETA").insert(payload).execute()
+    resultado = supabase.table("tb_excecao_coleta").insert(payload).execute()
     if not resultado.data:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -64,9 +64,9 @@ def atualizar_excecao(id_excecao: int, dados: ExcecaoAtualizar) -> Excecao:
 
     if "TP_EXCECAO" in campos or "HR_NOVO" in campos:
         atual = (
-            supabase.table("TB_EXCECAO_COLETA")
-            .select("TP_EXCECAO, HR_NOVO")
-            .eq("ID_EXCECAO_COLETA", id_excecao)
+            supabase.table("tb_excecao_coleta")
+            .select("tp_excecao, hr_novo")
+            .eq("id_excecao_coleta", id_excecao)
             .single()
             .execute()
         )
@@ -75,8 +75,8 @@ def atualizar_excecao(id_excecao: int, dados: ExcecaoAtualizar) -> Excecao:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Exceção {id_excecao} não encontrada.",
             )
-        tp = campos.get("TP_EXCECAO", atual.data["TP_EXCECAO"])
-        hr = campos.get("HR_NOVO", atual.data["HR_NOVO"])
+        tp = campos.get("tp_excecao", atual.data["tp_excecao"])
+        hr = campos.get("hr_novo", atual.data["hr_novo"])
         _validar_tipo_excecao(tp, hr)
 
     if "DT_EXCECAO" in campos:
@@ -85,9 +85,9 @@ def atualizar_excecao(id_excecao: int, dados: ExcecaoAtualizar) -> Excecao:
         campos["HR_NOVO"] = str(campos["HR_NOVO"])
 
     resultado = (
-        supabase.table("TB_EXCECAO_COLETA")
+        supabase.table("tb_excecao_coleta")
         .update(campos)
-        .eq("ID_EXCECAO_COLETA", id_excecao)
+        .eq("id_excecao_coleta", id_excecao)
         .execute()
     )
     if not resultado.data:
@@ -99,9 +99,9 @@ def atualizar_excecao(id_excecao: int, dados: ExcecaoAtualizar) -> Excecao:
 
 def remover_excecao(id_excecao: int) -> None:
     resultado = (
-        supabase.table("TB_EXCECAO_COLETA")
+        supabase.table("tb_excecao_coleta")
         .delete()
-        .eq("ID_EXCECAO_COLETA", id_excecao)
+        .eq("id_excecao_coleta", id_excecao)
         .execute()
     )
     if not resultado.data:

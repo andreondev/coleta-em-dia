@@ -2,31 +2,39 @@ from fastapi import HTTPException, status
 from app.db.session import supabase
 from app.models.cronograma import Cronograma, CronogramaAtualizar, CronogramaCriar
 
+
+def _lower_keys(d: dict) -> dict:
+    """Converte todas as chaves do dict para lowercase (padrão do Postgres)."""
+    return {k.lower(): v for k, v in d.items()}
+
+
 def listar_cronogramas() -> list[Cronograma]:
     resultado = (
-        supabase.table("TB_CRONOGRAMA")
+        supabase.table("tb_cronograma")
         .select("*")
-        .order("ID_BAIRRO")
-        .order("DS_DIA_SEMANA")
+        .order("id_bairro")
+        .order("ds_dia_semana")
         .execute()
     )
     return resultado.data or []
+
 
 def listar_cronogramas_por_bairro(id_bairro: int) -> list[Cronograma]:
     resultado = (
-        supabase.table("TB_CRONOGRAMA")
+        supabase.table("tb_cronograma")
         .select("*")
-        .eq("ID_BAIRRO", id_bairro)
-        .order("DS_DIA_SEMANA")
+        .eq("id_bairro", id_bairro)
+        .order("ds_dia_semana")
         .execute()
     )
     return resultado.data or []
 
+
 def buscar_cronograma(id_cronograma: int) -> Cronograma:
     resultado = (
-        supabase.table("TB_CRONOGRAMA")
+        supabase.table("tb_cronograma")
         .select("*")
-        .eq("ID_CRONOGRAMA", id_cronograma)
+        .eq("id_cronograma", id_cronograma)
         .single()
         .execute()
     )
@@ -37,11 +45,12 @@ def buscar_cronograma(id_cronograma: int) -> Cronograma:
         )
     return resultado.data
 
-def criar_cronograma(dados: CronogramaCriar) -> Cronograma:
-    payload = dados.model_dump()
-    payload["HR_COLETA"] = str(payload["HR_COLETA"])
 
-    resultado = supabase.table("TB_CRONOGRAMA").insert(payload).execute()
+def criar_cronograma(dados: CronogramaCriar) -> Cronograma:
+    payload = _lower_keys(dados.model_dump())
+    payload["hr_coleta"] = str(payload["hr_coleta"])
+
+    resultado = supabase.table("tb_cronograma").insert(payload).execute()
     if not resultado.data:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -49,21 +58,22 @@ def criar_cronograma(dados: CronogramaCriar) -> Cronograma:
         )
     return resultado.data[0]
 
+
 def atualizar_cronograma(id_cronograma: int, dados: CronogramaAtualizar) -> Cronograma:
-    campos = {k: v for k, v in dados.model_dump().items() if v is not None}
+    campos = _lower_keys({k: v for k, v in dados.model_dump().items() if v is not None})
     if not campos:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Nenhum campo fornecido para atualização.",
         )
 
-    if "HR_COLETA" in campos:
-        campos["HR_COLETA"] = str(campos["HR_COLETA"])
+    if "hr_coleta" in campos:
+        campos["hr_coleta"] = str(campos["hr_coleta"])
 
     resultado = (
-        supabase.table("TB_CRONOGRAMA")
+        supabase.table("tb_cronograma")
         .update(campos)
-        .eq("ID_CRONOGRAMA", id_cronograma)
+        .eq("id_cronograma", id_cronograma)
         .execute()
     )
     if not resultado.data:
@@ -73,11 +83,12 @@ def atualizar_cronograma(id_cronograma: int, dados: CronogramaAtualizar) -> Cron
         )
     return resultado.data[0]
 
+
 def remover_cronograma(id_cronograma: int) -> None:
     resultado = (
-        supabase.table("TB_CRONOGRAMA")
+        supabase.table("tb_cronograma")
         .delete()
-        .eq("ID_CRONOGRAMA", id_cronograma)
+        .eq("id_cronograma", id_cronograma)
         .execute()
     )
     if not resultado.data:

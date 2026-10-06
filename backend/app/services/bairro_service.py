@@ -2,15 +2,22 @@ from fastapi import HTTPException, status
 from app.db.session import supabase
 from app.models.bairro import Bairro, BairroAtualizar, BairroCriar
 
+
+def _lower_keys(d: dict) -> dict:
+    """Converte todas as chaves do dict para lowercase (padrão do Postgres)."""
+    return {k.lower(): v for k, v in d.items()}
+
+
 def listar_bairros() -> list[Bairro]:
-    resultado = supabase.table("TB_BAIRRO").select("*").order("NM_BAIRRO").execute()
+    resultado = supabase.table("tb_bairro").select("*").order("nm_bairro").execute()
     return resultado.data or []
+
 
 def buscar_bairro(id_bairro: int) -> Bairro:
     resultado = (
-        supabase.table("TB_BAIRRO")
+        supabase.table("tb_bairro")
         .select("*")
-        .eq("ID_BAIRRO", id_bairro)
+        .eq("id_bairro", id_bairro)
         .single()
         .execute()
     )
@@ -21,8 +28,9 @@ def buscar_bairro(id_bairro: int) -> Bairro:
         )
     return resultado.data
 
+
 def criar_bairro(dados: BairroCriar) -> Bairro:
-    resultado = supabase.table("TB_BAIRRO").insert(dados.model_dump()).execute()
+    resultado = supabase.table("tb_bairro").insert(_lower_keys(dados.model_dump())).execute()
     if not resultado.data:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -30,8 +38,9 @@ def criar_bairro(dados: BairroCriar) -> Bairro:
         )
     return resultado.data[0]
 
+
 def atualizar_bairro(id_bairro: int, dados: BairroAtualizar) -> Bairro:
-    campos = {k: v for k, v in dados.model_dump().items() if v is not None}
+    campos = _lower_keys({k: v for k, v in dados.model_dump().items() if v is not None})
     if not campos:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -39,9 +48,9 @@ def atualizar_bairro(id_bairro: int, dados: BairroAtualizar) -> Bairro:
         )
 
     resultado = (
-        supabase.table("TB_BAIRRO")
+        supabase.table("tb_bairro")
         .update(campos)
-        .eq("ID_BAIRRO", id_bairro)
+        .eq("id_bairro", id_bairro)
         .execute()
     )
     if not resultado.data:
@@ -51,11 +60,12 @@ def atualizar_bairro(id_bairro: int, dados: BairroAtualizar) -> Bairro:
         )
     return resultado.data[0]
 
+
 def remover_bairro(id_bairro: int) -> None:
     resultado = (
-        supabase.table("TB_BAIRRO")
+        supabase.table("tb_bairro")
         .delete()
-        .eq("ID_BAIRRO", id_bairro)
+        .eq("id_bairro", id_bairro)
         .execute()
     )
     if not resultado.data:

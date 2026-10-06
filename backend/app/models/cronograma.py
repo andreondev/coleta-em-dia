@@ -1,6 +1,11 @@
 from datetime import time
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+def _upper(s: str) -> str:
+    return s.upper()
+
 
 class CronogramaCriar(BaseModel):
     DS_DIA_SEMANA: str = Field(
@@ -11,10 +16,12 @@ class CronogramaCriar(BaseModel):
     HR_COLETA: time = Field(..., description="Horário da coleta (HH:MM:SS)")
     ID_BAIRRO: int = Field(..., description="ID do bairro associado")
 
+
 class CronogramaAtualizar(BaseModel):
     DS_DIA_SEMANA: Optional[str] = Field(None, max_length=20)
     HR_COLETA: Optional[time] = None
     ID_BAIRRO: Optional[int] = None
+
 
 class Cronograma(BaseModel):
     ID_CRONOGRAMA: int
@@ -22,4 +29,8 @@ class Cronograma(BaseModel):
     HR_COLETA: time
     ID_BAIRRO: int
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=_upper,
+        populate_by_name=True,
+    )
