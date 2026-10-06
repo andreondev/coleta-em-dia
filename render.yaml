@@ -1,0 +1,45 @@
+# render.yaml — Render Blueprint
+# Referência: https://render.com/docs/blueprint-spec
+#
+# Para fazer deploy: acesse https://dashboard.render.com → New → Blueprint
+# e aponte para o repositório deste projeto.
+
+services:
+  - type: web
+    name: coleta-api
+    runtime: python
+    region: ohio           # us-east-ohio é o mais próximo do Brasil
+    plan: free             # troque por "starter" para evitar cold start
+
+    # ── Raiz do monorepo ──────────────────────────────────────────────────
+    rootDir: backend
+
+    # ── Build & Start ─────────────────────────────────────────────────────
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # ── Health Check ──────────────────────────────────────────────────────
+    # O Render verifica esta rota antes de redirecionar o tráfego.
+    healthCheckPath: /
+
+    # ── Auto-deploy ao fazer push na branch main ──────────────────────────
+    autoDeploy: true
+
+    # ── Variáveis de ambiente ─────────────────────────────────────────────
+    # Os valores DEVEM ser preenchidos no dashboard do Render (Environment).
+    # Nunca coloque valores reais neste arquivo — ele é versionado no git!
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
+      - key: SUPABASE_URL
+        sync: false        # será preenchida manualmente no dashboard
+
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false        # será preenchida manualmente no dashboard
+
+      - key: JWT_SECRET_KEY
+        generateValue: true  # o Render gera uma string aleatória segura automaticamente
+
+      - key: CORS_ORIGINS
+        sync: false        # ex: https://seu-frontend.vercel.app

@@ -5,7 +5,7 @@ from app.core.security import obter_admin_atual
 from app.models.cronograma import Cronograma, CronogramaAtualizar, CronogramaCriar
 from app.services import cronograma_service
 
-router = APIRouter(prefix="/cronograma", tags=["Cronograma"])
+router = APIRouter(prefix="/cronogramas", tags=["Cronograma"])
 
 
 @router.get(
