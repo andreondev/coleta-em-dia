@@ -3,38 +3,19 @@
  * Desenvolvido em React + TypeScript + Tailwind CSS.
  */
 
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import type {
-  Bairro,
-  BairroCriar,
-  Cronograma,
-  CronogramaCriar,
-  Excecao,
+import {
+  bairroService,
+  cronogramaService,
+  excecaoService,
+  type Bairro,
+  type BairroCriar,
+  type Cronograma,
+  type CronogramaCriar,
+  type Excecao,
 } from '../services/api'
-
-// Dados iniciais mockados
-const MOCK_BAIRROS: Bairro[] = [
-  { ID_BAIRRO: 1, NM_BAIRRO: 'Centro' },
-  { ID_BAIRRO: 2, NM_BAIRRO: 'Jardim América' },
-  { ID_BAIRRO: 3, NM_BAIRRO: 'Vila Nova' },
-]
-
-const MOCK_CRONOGRAMAS: Cronograma[] = [
-  { ID_CRONOGRAMA: 1, DS_DIA_SEMANA: 'Segunda-feira', HR_COLETA: '07:00', ID_BAIRRO: 1 },
-  { ID_CRONOGRAMA: 2, DS_DIA_SEMANA: 'Terça-feira',   HR_COLETA: '08:30', ID_BAIRRO: 2 },
-]
-
-const MOCK_EXCECOES: Excecao[] = [
-  {
-    ID_EXCECAO_COLETA: 1,
-    DT_EXCECAO: '2026-09-20',
-    TP_EXCECAO: 'cancelamento',
-    HR_NOVO: null,
-    ID_CRONOGRAMA: 1,
-  },
-]
 
 const DIAS_SEMANA = [
   'Segunda-feira',
@@ -53,10 +34,11 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [abaAtiva, setAbaAtiva] = useState<AbaTipo>('bairros')
 
-  // Estados locais dos dados para manipulação visual pré-integração
-  const [bairros, setBairros] = useState<Bairro[]>(MOCK_BAIRROS)
-  const [cronogramas, setCronogramas] = useState<Cronograma[]>(MOCK_CRONOGRAMAS)
-  const [excecoes, setExcecoes] = useState<Excecao[]>(MOCK_EXCECOES)
+  // Estados locais dos dados
+  const [bairros, setBairros] = useState<Bairro[]>([])
+  const [cronogramas, setCronogramas] = useState<Cronograma[]>([])
+  const [excecoes, setExcecoes] = useState<Excecao[]>([])
+  const [carregando, setCarregando] = useState(false)
 
   // Formulários
   const [bairroForm, setBairroForm] = useState<BairroCriar>({ NM_BAIRRO: '' })
@@ -79,11 +61,40 @@ export default function Dashboard() {
 
   // Mensagens de feedback
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
 
   const dispararSucesso = (msg: string) => {
     setMensagemSucesso(msg)
     setTimeout(() => setMensagemSucesso(null), 3000)
   }
+
+  const dispararErro = (msg: string) => {
+    setErro(msg)
+    setTimeout(() => setErro(null), 5000)
+  }
+
+  const carregarDados = async () => {
+    setCarregando(true)
+    try {
+      const [resBairros, resCronogramas, resExcecoes] = await Promise.all([
+        bairroService.listar(),
+        cronogramaService.listar(),
+        excecaoService.listar(),
+      ])
+      setBairros(resBairros.data)
+      setCronogramas(resCronogramas.data)
+      setExcecoes(resExcecoes.data)
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao carregar dados do servidor.')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregarDados()
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -91,81 +102,110 @@ export default function Dashboard() {
   }
 
   // Submit Bairro
-  const handleBairroSubmit = (e: FormEvent) => {
+  const handleBairroSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!bairroForm.NM_BAIRRO.trim()) return
 
-    // TODO: Integrar com bairroService.criar(bairroForm)
-    const novoBairro: Bairro = {
-      ID_BAIRRO: Date.now(),
-      NM_BAIRRO: bairroForm.NM_BAIRRO.trim(),
+    try {
+      const res = await bairroService.criar({ NM_BAIRRO: bairroForm.NM_BAIRRO.trim() })
+      setBairros((prev) => [...prev, res.data])
+      setBairroForm({ NM_BAIRRO: '' })
+      dispararSucesso('Bairro cadastrado com sucesso!')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao cadastrar bairro.')
     }
-    setBairros((prev) => [...prev, novoBairro])
-    setBairroForm({ NM_BAIRRO: '' })
-    dispararSucesso('Bairro cadastrado com sucesso!')
   }
 
   // Delete Bairro
-  const handleBairroDelete = (id: number) => {
-    // TODO: Integrar com bairroService.deletar(id)
-    setBairros((prev) => prev.filter((b) => b.ID_BAIRRO !== id))
-    // Remove também cronogramas vinculados localmente
-    setCronogramas((prev) => prev.filter((c) => c.ID_BAIRRO !== id))
+  const handleBairroDelete = async (id: number) => {
+    if (!confirm('Deseja realmente excluir este bairro?')) return
+    try {
+      await bairroService.deletar(id)
+      setBairros((prev) => prev.filter((b) => b.ID_BAIRRO !== id))
+      setCronogramas((prev) => prev.filter((c) => c.ID_BAIRRO !== id))
+      dispararSucesso('Bairro excluído.')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao excluir bairro.')
+    }
   }
 
   // Submit Cronograma
-  const handleCronogramaSubmit = (e: FormEvent) => {
+  const handleCronogramaSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!cronogramaForm.DS_DIA_SEMANA || !cronogramaForm.HR_COLETA || !cronogramaForm.ID_BAIRRO) {
       return
     }
 
-    // TODO: Integrar com cronogramaService.criar(cronogramaForm)
-    const novoCronograma: Cronograma = {
-      ID_CRONOGRAMA: Date.now(),
-      DS_DIA_SEMANA: cronogramaForm.DS_DIA_SEMANA,
-      HR_COLETA: cronogramaForm.HR_COLETA,
-      ID_BAIRRO: Number(cronogramaForm.ID_BAIRRO),
+    try {
+      const payload: CronogramaCriar = {
+        DS_DIA_SEMANA: cronogramaForm.DS_DIA_SEMANA,
+        HR_COLETA: cronogramaForm.HR_COLETA,
+        ID_BAIRRO: Number(cronogramaForm.ID_BAIRRO),
+      }
+      const res = await cronogramaService.criar(payload)
+      setCronogramas((prev) => [...prev, res.data])
+      setCronogramaForm({ DS_DIA_SEMANA: '', HR_COLETA: '', ID_BAIRRO: 0 })
+      dispararSucesso('Cronograma cadastrado com sucesso!')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao cadastrar cronograma.')
     }
-    setCronogramas((prev) => [...prev, novoCronograma])
-    setCronogramaForm({ DS_DIA_SEMANA: '', HR_COLETA: '', ID_BAIRRO: 0 })
-    dispararSucesso('Cronograma cadastrado com sucesso!')
   }
 
   // Delete Cronograma
-  const handleCronogramaDelete = (id: number) => {
-    // TODO: Integrar com cronogramaService.deletar(id)
-    setCronogramas((prev) => prev.filter((c) => c.ID_CRONOGRAMA !== id))
+  const handleCronogramaDelete = async (id: number) => {
+    if (!confirm('Deseja realmente excluir este cronograma?')) return
+    try {
+      await cronogramaService.deletar(id)
+      setCronogramas((prev) => prev.filter((c) => c.ID_CRONOGRAMA !== id))
+      dispararSucesso('Cronograma excluído.')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao excluir cronograma.')
+    }
   }
 
   // Submit Exceção
-  const handleExcecaoSubmit = (e: FormEvent) => {
+  const handleExcecaoSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!excecaoForm.DT_EXCECAO || !excecaoForm.ID_CRONOGRAMA) return
     if (excecaoForm.TP_EXCECAO === 'reagendamento' && !excecaoForm.HR_NOVO) return
 
-    // TODO: Integrar com excecaoService.criar(payload)
-    const novaExcecao: Excecao = {
-      ID_EXCECAO_COLETA: Date.now(),
-      DT_EXCECAO: excecaoForm.DT_EXCECAO,
-      TP_EXCECAO: excecaoForm.TP_EXCECAO,
-      HR_NOVO: excecaoForm.TP_EXCECAO === 'reagendamento' ? excecaoForm.HR_NOVO : null,
-      ID_CRONOGRAMA: Number(excecaoForm.ID_CRONOGRAMA),
+    try {
+      const payload = {
+        DT_EXCECAO: excecaoForm.DT_EXCECAO,
+        TP_EXCECAO: excecaoForm.TP_EXCECAO,
+        HR_NOVO: excecaoForm.TP_EXCECAO === 'reagendamento' ? excecaoForm.HR_NOVO : null,
+        ID_CRONOGRAMA: Number(excecaoForm.ID_CRONOGRAMA),
+      }
+      const res = await excecaoService.criar(payload)
+      setExcecoes((prev) => [...prev, res.data])
+      setExcecaoForm({
+        DT_EXCECAO: '',
+        TP_EXCECAO: 'cancelamento',
+        HR_NOVO: '',
+        ID_CRONOGRAMA: 0,
+      })
+      dispararSucesso('Exceção cadastrada com sucesso!')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao cadastrar exceção.')
     }
-    setExcecoes((prev) => [...prev, novaExcecao])
-    setExcecaoForm({
-      DT_EXCECAO: '',
-      TP_EXCECAO: 'cancelamento',
-      HR_NOVO: '',
-      ID_CRONOGRAMA: 0,
-    })
-    dispararSucesso('Exceção cadastrada com sucesso!')
   }
 
   // Delete Exceção
-  const handleExcecaoDelete = (id: number) => {
-    // TODO: Integrar com excecaoService.deletar(id)
-    setExcecoes((prev) => prev.filter((ex) => ex.ID_EXCECAO_COLETA !== id))
+  const handleExcecaoDelete = async (id: number) => {
+    if (!confirm('Deseja realmente excluir esta exceção?')) return
+    try {
+      await excecaoService.deletar(id)
+      setExcecoes((prev) => prev.filter((ex) => ex.ID_EXCECAO_COLETA !== id))
+      dispararSucesso('Exceção excluída.')
+    } catch (err) {
+      console.error(err)
+      dispararErro('Erro ao excluir exceção.')
+    }
   }
 
   const getNomeBairroPorId = (idBairro: number) => {
@@ -263,14 +303,29 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {mensagemSucesso && (
-            <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 px-3.5 py-2 rounded-lg text-sm flex items-center gap-2 animate-fade-in shadow-sm">
-              <span>✅</span> {mensagemSucesso}
-            </div>
-          )}
+          <div className="flex flex-col gap-2 items-end">
+            {mensagemSucesso && (
+              <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 px-3.5 py-2 rounded-lg text-sm flex items-center gap-2 animate-fade-in shadow-sm">
+                <span>✅</span> {mensagemSucesso}
+              </div>
+            )}
+            {erro && (
+              <div className="bg-rose-100 border border-rose-300 text-rose-800 px-3.5 py-2 rounded-lg text-sm flex items-center gap-2 animate-fade-in shadow-sm">
+                <span>❌</span> {erro}
+              </div>
+            )}
+          </div>
         </header>
 
-        {/* ABA: BAIRROS */}
+        {carregando && (
+          <div className="flex justify-center p-8 text-slate-500">
+            Carregando dados...
+          </div>
+        )}
+
+        {!carregando && (
+          <>
+            {/* ABA: BAIRROS */}
         {abaAtiva === 'bairros' && (
           <div className="space-y-6">
             {/* Card de Cadastro */}
@@ -607,6 +662,8 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
