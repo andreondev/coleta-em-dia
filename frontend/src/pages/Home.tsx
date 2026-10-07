@@ -3,28 +3,10 @@
  * Desenvolvido em React + TypeScript + Tailwind CSS.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { bairroService, cronogramaService } from '../services/api'
 import type { Bairro, Cronograma } from '../services/api'
-
-// Dados mockados estruturados conforme os tipos da API
-const MOCK_BAIRROS: Bairro[] = [
-  { ID_BAIRRO: 1, NM_BAIRRO: 'Centro' },
-  { ID_BAIRRO: 2, NM_BAIRRO: 'Jardim América' },
-  { ID_BAIRRO: 3, NM_BAIRRO: 'Vila Nova' },
-  { ID_BAIRRO: 4, NM_BAIRRO: 'Parque Industrial' },
-  { ID_BAIRRO: 5, NM_BAIRRO: 'Santa Cruz' },
-]
-
-const MOCK_CRONOGRAMAS: Cronograma[] = [
-  { ID_CRONOGRAMA: 1, DS_DIA_SEMANA: 'Segunda-feira', HR_COLETA: '07:00', ID_BAIRRO: 1 },
-  { ID_CRONOGRAMA: 2, DS_DIA_SEMANA: 'Segunda-feira', HR_COLETA: '08:30', ID_BAIRRO: 2 },
-  { ID_CRONOGRAMA: 3, DS_DIA_SEMANA: 'Terça-feira',   HR_COLETA: '07:00', ID_BAIRRO: 3 },
-  { ID_CRONOGRAMA: 4, DS_DIA_SEMANA: 'Quarta-feira',  HR_COLETA: '09:00', ID_BAIRRO: 4 },
-  { ID_CRONOGRAMA: 5, DS_DIA_SEMANA: 'Quinta-feira',  HR_COLETA: '07:30', ID_BAIRRO: 5 },
-  { ID_CRONOGRAMA: 6, DS_DIA_SEMANA: 'Sexta-feira',   HR_COLETA: '07:00', ID_BAIRRO: 1 },
-  { ID_CRONOGRAMA: 7, DS_DIA_SEMANA: 'Sexta-feira',   HR_COLETA: '10:00', ID_BAIRRO: 3 },
-]
 
 const DIAS_ORDEM = [
   'Segunda-feira',
@@ -38,16 +20,37 @@ const DIAS_ORDEM = [
 
 export default function Home() {
   const [busca, setBusca] = useState('')
+  const [bairros, setBairros] = useState<Bairro[]>([])
+  const [cronogramas, setCronogramas] = useState<Cronograma[]>([])
+  const [carregando, setCarregando] = useState(true)
+
+  useEffect(() => {
+    async function carregarDados() {
+      try {
+        const [resBairros, resCronogramas] = await Promise.all([
+          bairroService.listar(),
+          cronogramaService.listar(),
+        ])
+        setBairros(resBairros.data)
+        setCronogramas(resCronogramas.data)
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      } finally {
+        setCarregando(false)
+      }
+    }
+    carregarDados()
+  }, [])
 
   // Agrupamento de cronogramas por dia
   const cronogramaPorDia = DIAS_ORDEM.reduce<Record<string, Cronograma[]>>((acc, dia) => {
-    const entradas = MOCK_CRONOGRAMAS.filter((c) => c.DS_DIA_SEMANA === dia)
+    const entradas = cronogramas.filter((c) => c.DS_DIA_SEMANA === dia)
     if (entradas.length > 0) acc[dia] = entradas
     return acc
   }, {})
 
   // Filtro pelo nome do bairro
-  const bairrosFiltrados = MOCK_BAIRROS.filter((b) =>
+  const bairrosFiltrados = bairros.filter((b) =>
     b.NM_BAIRRO.toLowerCase().includes(busca.toLowerCase())
   )
 
@@ -58,7 +61,7 @@ export default function Home() {
     : Object.entries(cronogramaPorDia)
 
   const getNomeBairro = (id: number): string =>
-    MOCK_BAIRROS.find((b) => b.ID_BAIRRO === id)?.NM_BAIRRO || '—'
+    bairros.find((b) => b.ID_BAIRRO === id)?.NM_BAIRRO || '—'
 
   // Identificação do dia da semana atual em português
   const hoje = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(new Date())
@@ -121,7 +124,12 @@ export default function Home() {
 
       {/* Grade de Dias e Horários */}
       <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
-        {diasComResultado.length === 0 ? (
+        {carregando ? (
+          <div className="text-center py-16 text-slate-500">
+            <div className="animate-spin text-4xl inline-block mb-4">⏳</div>
+            <p className="text-base font-medium">Carregando horários...</p>
+          </div>
+        ) : diasComResultado.length === 0 ? (
           <div className="text-center py-16 text-slate-500">
             <span className="text-4xl block mb-2">📭</span>
             <p className="text-base font-medium">
