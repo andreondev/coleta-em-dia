@@ -48,12 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      // TODO: descomentar quando o backend estiver conectado
-      // const { data } = await authService.login(credentials)
-      // const { access_token } = data
-
-      // Simulação local para desenvolvimento visual
-      const access_token = 'mock_jwt_token_admin'
+      const { data } = await authService.login(credentials)
+      const { access_token } = data
 
       localStorage.setItem('token', access_token)
       setToken(access_token)
