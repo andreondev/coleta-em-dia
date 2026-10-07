@@ -18,7 +18,7 @@ def buscar_bairro(id_bairro: int) -> Bairro:
         supabase.table("tb_bairro")
         .select("*")
         .eq("id_bairro", id_bairro)
-        .single()
+        .maybe_single()
         .execute()
     )
     if not resultado.data:

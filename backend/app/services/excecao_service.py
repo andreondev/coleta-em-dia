@@ -28,7 +28,7 @@ def buscar_excecao(id_excecao: int) -> Excecao:
         supabase.table("tb_excecao_coleta")
         .select("*")
         .eq("id_excecao_coleta", id_excecao)
-        .single()
+        .maybe_single()
         .execute()
     )
     if not resultado.data:
@@ -67,7 +67,7 @@ def atualizar_excecao(id_excecao: int, dados: ExcecaoAtualizar) -> Excecao:
             supabase.table("tb_excecao_coleta")
             .select("tp_excecao, hr_novo")
             .eq("id_excecao_coleta", id_excecao)
-            .single()
+            .maybe_single()
             .execute()
         )
         if not atual.data:

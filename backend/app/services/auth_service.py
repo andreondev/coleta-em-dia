@@ -8,7 +8,7 @@ def login(dados: LoginRequest) -> TokenResponse:
         supabase.table("tb_admin")
         .select("ds_login, ds_senha")
         .eq("ds_login", dados.DS_LOGIN)
-        .single()
+        .maybe_single()
         .execute()
     )
 

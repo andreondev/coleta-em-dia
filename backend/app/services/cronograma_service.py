@@ -35,7 +35,7 @@ def buscar_cronograma(id_cronograma: int) -> Cronograma:
         supabase.table("tb_cronograma")
         .select("*")
         .eq("id_cronograma", id_cronograma)
-        .single()
+        .maybe_single()
         .execute()
     )
     if not resultado.data:
