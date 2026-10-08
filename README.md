@@ -44,12 +44,12 @@ O backend utiliza o Supabase como banco de dados principal.
    ```
 3. Instale as dependências:
    ```bash
-   pip install -r requirements.txt
+   python -m pip install -r requirements.txt
    ```
 4. Copie o arquivo `.env.example` para `.env` e preencha as variáveis.
 5. Inicie o servidor:
    ```bash
-   fastapi dev app/main.py
+   uvicorn app.main:app --reload
    ```
    *A API estará rodando em http://localhost:8000*
 
